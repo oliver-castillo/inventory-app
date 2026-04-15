@@ -8,6 +8,7 @@ import com.app.inventory.mapper.UserMapper;
 import com.app.inventory.persistence.entity.UserEntity;
 import com.app.inventory.persistence.repository.JpaUserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,10 +16,12 @@ import org.springframework.stereotype.Service;
 public class DefaultUserService implements UserService {
   private final JpaUserRepository jpaUserRepository;
   private final UserMapper userMapper;
+  private final PasswordEncoder passwordEncoder;
 
   @Override
   public User createUser(User user) {
     validateEmail(user.getEmail());
+    encryptPassword(user);
     UserEntity savedUser = jpaUserRepository.save(userMapper.userToUserEntity(user));
     return userMapper.userEntityToUser(savedUser);
   }
@@ -27,5 +30,10 @@ public class DefaultUserService implements UserService {
     if (jpaUserRepository.existsByEmail(email)) {
       throw new AlreadyExistsException(ErrorMessage.EMAIL_ALREADY_EXISTS);
     }
+  }
+
+  private void encryptPassword(User user) {
+    String encryptedPassword = passwordEncoder.encode(user.getPassword());
+    user.setPassword(encryptedPassword);
   }
 }
