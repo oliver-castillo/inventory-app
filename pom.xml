@@ -121,6 +121,7 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
+                        <phase>generate-sources</phase>
                         <configuration>
                             <inputSpec>${project.basedir}/src/main/resources/openapi.yaml</inputSpec>
                             <generatorName>spring</generatorName>
@@ -128,10 +129,16 @@
                                 ApiUtil.java
                             </supportingFilesToGenerate>
                             <configOptions>
-                                <interfaceOnly>true</interfaceOnly>
                                 <sourceFolder>src/gen/java/main</sourceFolder>
-                                <openApiNullable>false</openApiNullable>
+                                <interfaceOnly>true</interfaceOnly>
                                 <useSpringBoot3>true</useSpringBoot3>
+                                <openApiNullable>false</openApiNullable>
+                                <additionalModelTypeAnnotations>
+                                    @lombok.Data
+                                    @lombok.NoArgsConstructor
+                                    @lombok.AllArgsConstructor
+                                    @lombok.Builder
+                                </additionalModelTypeAnnotations>
                             </configOptions>
                         </configuration>
                     </execution>

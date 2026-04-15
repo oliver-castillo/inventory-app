@@ -4,7 +4,7 @@ info:
   description: My service
   version: 1.0.0
 servers:
-  - url: 'http://localhost:8080'
+  - url: 'http://localhost:8080/api/v1'
 paths:
   /users:
     post:
@@ -22,17 +22,22 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/UserResponse'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   schemas:
-    User:
+    UserBase:
       type: object
       properties:
         firstName:
           type: string
           example: 'John'
-          pattern: ''
         lastName:
           type: string
           example: 'Doe'
@@ -45,7 +50,7 @@ components:
         - email
     UserRequest:
       allOf:
-        - $ref: '#/components/schemas/User'
+        - $ref: '#/components/schemas/UserBase'
         - type: object
           properties:
             password:
@@ -53,3 +58,15 @@ components:
               example: 'securePassword123'
           required:
             - password
+    UserResponse:
+      allOf:
+        - $ref: '#/components/schemas/UserBase'
+        - type: object
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example:
+            - 'Email already exists'
+            - 'User not found'
