@@ -32,6 +32,9 @@
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
         <openapi.maven.plugin.version>7.19.0</openapi.maven.plugin.version>
         <io.swagger.core.v3.version>2.2.45</io.swagger.core.v3.version>
+        <jacoco.version>0.8.14</jacoco.version>
+        <instancio.version>5.5.1</instancio.version>
+        <datafaker.version>2.5.4</datafaker.version>
     </properties>
     <dependencies>
         <dependency>
@@ -95,6 +98,17 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.instancio</groupId>
+            <artifactId>instancio-junit</artifactId>
+            <version>${instancio.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.datafaker</groupId>
+            <artifactId>datafaker</artifactId>
+            <version>${datafaker.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -153,7 +167,26 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-
 </project>
