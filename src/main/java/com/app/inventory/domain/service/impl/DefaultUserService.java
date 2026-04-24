@@ -33,7 +33,6 @@ public class DefaultUserService implements UserService {
 
   private void validateEmail(String email) {
     if (jpaUserRepository.existsByEmail(email)) {
-      log.warn("Attempt to create user with existing email: {}", email);
       throw new AlreadyExistsException(ErrorMessage.EMAIL_ALREADY_EXISTS);
     }
   }
