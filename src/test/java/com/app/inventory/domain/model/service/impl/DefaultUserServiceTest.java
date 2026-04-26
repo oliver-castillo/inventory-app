@@ -1,16 +1,14 @@
 package com.app.inventory.domain.model.service.impl;
 
 import com.app.inventory.config.AlreadyExistsException;
+import com.app.inventory.config.NotFoundException;
 import com.app.inventory.domain.model.User;
+import com.app.inventory.domain.repository.UserRepository;
 import com.app.inventory.domain.service.impl.DefaultUserService;
-import com.app.inventory.mapper.UserMapper;
-import com.app.inventory.persistence.entity.UserEntity;
-import com.app.inventory.persistence.repository.JpaUserRepository;
 import net.datafaker.Faker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,68 +21,70 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class DefaultUserServiceTest {
   @Mock
-  private JpaUserRepository jpaUserRepository;
-  @Mock
-  private UserMapper userMapper;
+  private UserRepository userRepository;
   @Mock
   private PasswordEncoder passwordEncoder;
 
   @InjectMocks
   private DefaultUserService defaultUserService;
 
-  private Faker faker;
-  private User user;
-  private UserEntity userEntity;
-  private String plainPassword;
+  private User userToCreate;
+  private User userToUpdate;
+  private User savedUser;
   private String encryptedPassword;
+  private Long userId;
 
   @BeforeEach
   void setUp() {
-    faker = new Faker();
+    Faker faker = new Faker();
     String firstName = faker.name().firstName();
     String lastName = faker.name().lastName();
     String email = faker.internet().emailAddress();
-    plainPassword = faker.credentials().password();
+    String plainPassword = faker.credentials().password();
     encryptedPassword = "$2a$10$encrypted" + plainPassword;
 
-    user = new User(firstName, lastName, email, plainPassword);
-    userEntity = new UserEntity(firstName, lastName, email, encryptedPassword);
+    userId = faker.number().numberBetween(1L, 100L);
+
+    userToCreate = new User(null, firstName, lastName, email, plainPassword);
+    userToUpdate = new User(null, firstName, lastName, email, null);
+
+    savedUser = new User(userId, firstName, lastName, email, encryptedPassword);
   }
 
   @Test
   void testCreateUserSuccessfully() {
-    when(jpaUserRepository.existsByEmail(user.getEmail())).thenReturn(false);
-    when(passwordEncoder.encode(plainPassword)).thenReturn(encryptedPassword);
-    when(userMapper.userToUserEntity(any(User.class))).thenReturn(userEntity);
-    when(jpaUserRepository.save(userEntity)).thenReturn(userEntity);
-    when(userMapper.userEntityToUser(userEntity)).thenReturn(user);
+    when(userRepository.existsByEmail(userToCreate.getEmail())).thenReturn(false);
+    when(passwordEncoder.encode(userToCreate.getPassword())).thenReturn(encryptedPassword);
+    when(userRepository.save(userToCreate)).thenReturn(savedUser);
 
-    User createdUser = defaultUserService.createUser(user);
+    User createdUser = defaultUserService.createUser(userToCreate);
 
-    assertEquals(user, createdUser);
-    verify(jpaUserRepository).existsByEmail(user.getEmail());
+    assertEquals(savedUser, createdUser);
+  }
+
+  @Test
+  void testUpdateUserSuccessfully() {
+    when(userRepository.existsById(userId)).thenReturn(true);
+    when(userRepository.existsByEmailAndIdNot(userToUpdate.getEmail(), userId)).thenReturn(false);
+    when(userRepository.updateFields(userId, userToUpdate.getFirstName(), userToUpdate.getLastName(), userToUpdate.getEmail())).thenReturn(savedUser);
+
+    User updatedUser = defaultUserService.updateUser(userId, userToUpdate);
+
+    assertEquals(savedUser, updatedUser);
   }
 
   @Test
   void testCreateUserThrowsExceptionWhenEmailExists() {
-    when(jpaUserRepository.existsByEmail(user.getEmail())).thenReturn(true);
+    when(userRepository.existsByEmail(userToCreate.getEmail())).thenReturn(true);
 
-    assertThrows(AlreadyExistsException.class, () -> defaultUserService.createUser(user));
+    assertThrows(AlreadyExistsException.class, () -> defaultUserService.createUser(userToCreate));
     verify(passwordEncoder, never()).encode(any());
   }
 
   @Test
-  void testCreateUserEncryptsPassword() {
-    when(jpaUserRepository.existsByEmail(user.getEmail())).thenReturn(false);
-    when(passwordEncoder.encode(plainPassword)).thenReturn(encryptedPassword);
-    when(userMapper.userToUserEntity(any(User.class))).thenReturn(userEntity);
-    when(jpaUserRepository.save(userEntity)).thenReturn(userEntity);
-    when(userMapper.userEntityToUser(userEntity)).thenReturn(user);
+  void testUpdateUserThrowsExceptionWhenIdDoesNotExists() {
+    when(userRepository.existsById(userId)).thenReturn(false);
 
-    defaultUserService.createUser(user);
-
-    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-    verify(userMapper).userToUserEntity(captor.capture());
-    assertEquals(encryptedPassword, captor.getValue().getPassword());
+    assertThrows(NotFoundException.class, () -> defaultUserService.updateUser(userId, userToUpdate));
   }
 }
