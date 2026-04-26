@@ -2,11 +2,10 @@ package com.app.inventory.domain.service.impl;
 
 import com.app.inventory.config.AlreadyExistsException;
 import com.app.inventory.config.ErrorMessage;
+import com.app.inventory.config.NotFoundException;
 import com.app.inventory.domain.model.User;
+import com.app.inventory.domain.repository.UserRepository;
 import com.app.inventory.domain.service.UserService;
-import com.app.inventory.mapper.UserMapper;
-import com.app.inventory.persistence.entity.UserEntity;
-import com.app.inventory.persistence.repository.JpaUserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,28 +16,37 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Slf4j
 public class DefaultUserService implements UserService {
-  private final JpaUserRepository jpaUserRepository;
-  private final UserMapper userMapper;
+  private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
 
   @Override
   @Transactional
   public User createUser(User user) {
-    validateEmail(user.getEmail());
-    User userWithEncryptedPassword = encryptPassword(user);
-    UserEntity userEntity = userMapper.userToUserEntity(userWithEncryptedPassword);
-    UserEntity savedUser = jpaUserRepository.save(userEntity);
-    return userMapper.userEntityToUser(savedUser);
+    validateEmail(user.getEmail(), null);
+    user.setPassword(passwordEncoder.encode(user.getPassword()));
+    return userRepository.save(user);
   }
 
-  private void validateEmail(String email) {
-    if (jpaUserRepository.existsByEmail(email)) {
+  @Override
+  @Transactional
+  public User updateUser(Long userId, User user) {
+    validateId(userId);
+    validateEmail(user.getEmail(), userId);
+    return userRepository.updateFields(userId, user.getFirstName(), user.getLastName(), user.getEmail());
+  }
+
+  private void validateEmail(String email, Long userId) {
+    boolean exists = userId == null
+        ? userRepository.existsByEmail(email)
+        : userRepository.existsByEmailAndIdNot(email, userId);
+    if (exists) {
       throw new AlreadyExistsException(ErrorMessage.EMAIL_ALREADY_EXISTS);
     }
   }
 
-  private User encryptPassword(User user) {
-    String encryptedPassword = passwordEncoder.encode(user.getPassword());
-    return new User(user.getFirstName(), user.getLastName(), user.getEmail(), encryptedPassword);
+  private void validateId(Long id) {
+    if (!userRepository.existsById(id)) {
+      throw new NotFoundException(ErrorMessage.USER_NOT_FOUND);
+    }
   }
 }
