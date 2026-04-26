@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: My service
+  title: Inventory Service
   description: My service
   version: 1.0.0
 servers:
@@ -15,7 +15,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserRequest'
+              $ref: '#/components/schemas/CreateUserRequest'
       responses:
         '201':
           description: User created
@@ -29,6 +29,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update user by ID
+      operationId: updateUserById
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
 
 components:
   schemas:
@@ -48,7 +66,7 @@ components:
         - firstName
         - lastName
         - email
-    UserRequest:
+    CreateUserRequest:
       allOf:
         - $ref: '#/components/schemas/UserBase'
         - type: object
@@ -58,10 +76,19 @@ components:
               example: 'securePassword123'
           required:
             - password
+    UpdateUserRequest:
+      allOf:
+        - $ref: '#/components/schemas/UserBase'
+        - type: object
     UserResponse:
       allOf:
         - $ref: '#/components/schemas/UserBase'
         - type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+              example: 1
     ErrorResponse:
       type: object
       properties:
@@ -70,3 +97,14 @@ components:
           example:
             - 'Email already exists'
             - 'User not found'
+  parameters:
+    userId:
+      in: query
+      name: userId
+      description: User ID
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+        example: 1
